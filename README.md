@@ -36,7 +36,7 @@ This project demonstrates backend processing, media extraction, and file streami
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/video-downloader.git
+git clone https://github.com/vivekmaini/video-downloader.git
 cd video-downloader
 ```
 
