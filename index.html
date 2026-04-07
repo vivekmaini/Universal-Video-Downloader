@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Universal Video Downloader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="container">
+  <h1>⚡ Universal Downloader</h1>
+
+  <input type="text" id="url" placeholder="Paste video link...">
+
+  <div class="options">
+    <select id="format">
+      <option value="mp4">🎬 MP4 Video</option>
+      <option value="mp3">🎵 MP3 Audio</option>
+    </select>
+
+    <select id="quality">
+      <option value="best">1080</option>
+      <option value="720">720p</option>
+      <option value="480">480p</option>
+      <option value="360">360p</option>
+    </select>
+  </div>
+
+  <button onclick="getVideo()">Fetch Video</button>
+
+  <div id="result"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
