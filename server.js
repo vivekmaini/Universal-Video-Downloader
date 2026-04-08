@@ -32,6 +32,13 @@ app.get("/download", async (req, res) => {
     const format = req.query.format;
     const quality = req.query.quality;
 
+    const info = await ytDlp(url, {
+      dumpSingleJson: true
+    });
+
+    let title = info.title.replace(/[^\w\s]/gi, "").replace(/\s+/g, "_");
+    const uniqueName = `${title}_${Date.now()}`;
+
     let ytFormat = "best";
 
     if (quality === "720") ytFormat = "bestvideo[height<=720]+bestaudio";
@@ -39,7 +46,7 @@ app.get("/download", async (req, res) => {
     else if (quality === "360") ytFormat = "bestvideo[height<=360]+bestaudio";
 
     if (format === "mp3") {
-      res.header("Content-Disposition", "attachment; filename=audio.mp3");
+      res.header("Content-Disposition", `attachment; filename="${uniqueName}.mp3"`);
 
       const process = ytDlp.exec(url, {
         extractAudio: true,
@@ -48,8 +55,9 @@ app.get("/download", async (req, res) => {
       });
 
       process.stdout.pipe(res);
+
     } else {
-      res.header("Content-Disposition", "attachment; filename=video.mp4");
+      res.header("Content-Disposition", `attachment; filename="${uniqueName}.mp4"`);
 
       const process = ytDlp.exec(url, {
         format: ytFormat,
@@ -65,7 +73,6 @@ app.get("/download", async (req, res) => {
   }
 });
 
-// PORT FIX (deployment ready)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
