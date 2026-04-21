@@ -4,13 +4,33 @@ const ytDlp = require("yt-dlp-exec");
 const app = express();
 
 app.use(express.static(__dirname));
+app.use(express.json());
+
+// URL clean function
+function cleanUrl(url) {
+  if (!url) return "";
+  return url.split("&")[0]; // remove extra params
+}
+
+// COMMON yt-dlp options (IMPORTANT)
+const ytdlpOptions = {
+  noCheckCertificates: true,
+  noWarnings: true,
+  preferFreeFormats: true,
+  addHeader: [
+    "user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "accept-language:en-US,en;q=0.9"
+  ],
+  extractorArgs: "youtube:player_client=android"
+};
 
 // INFO API
 app.get("/info", async (req, res) => {
   try {
-    const url = req.query.url;
+    let url = cleanUrl(req.query.url);
 
     const info = await ytDlp(url, {
+      ...ytdlpOptions,
       dumpSingleJson: true
     });
 
@@ -20,19 +40,23 @@ app.get("/info", async (req, res) => {
     });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "Invalid link" });
+    console.log("INFO ERROR:", err.stderr || err.message);
+
+    res.json({
+      error: "Video fetch failed. Try another link."
+    });
   }
 });
 
 // DOWNLOAD API
 app.get("/download", async (req, res) => {
   try {
-    const url = req.query.url;
+    let url = cleanUrl(req.query.url);
     const format = req.query.format;
     const quality = req.query.quality;
 
     const info = await ytDlp(url, {
+      ...ytdlpOptions,
       dumpSingleJson: true
     });
 
@@ -49,6 +73,7 @@ app.get("/download", async (req, res) => {
       res.header("Content-Disposition", `attachment; filename="${uniqueName}.mp3"`);
 
       const process = ytDlp.exec(url, {
+        ...ytdlpOptions,
         extractAudio: true,
         audioFormat: "mp3",
         output: "-"
@@ -60,6 +85,7 @@ app.get("/download", async (req, res) => {
       res.header("Content-Disposition", `attachment; filename="${uniqueName}.mp4"`);
 
       const process = ytDlp.exec(url, {
+        ...ytdlpOptions,
         format: ytFormat,
         output: "-"
       });
@@ -68,8 +94,9 @@ app.get("/download", async (req, res) => {
     }
 
   } catch (err) {
-    console.log(err);
-    res.status(500).send("Download failed");
+    console.log("DOWNLOAD ERROR:", err.stderr || err.message);
+
+    res.status(500).send("Download failed. Try another video.");
   }
 });
 
