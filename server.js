@@ -1,5 +1,7 @@
 const express = require("express");
 const ytDlp = require("yt-dlp-exec");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 
@@ -21,23 +23,19 @@ function cleanUrl(url) {
   return url;
 }
 
-// 🔹 COMMON OPTIONS (IMPORTANT)
+// 🔹 COMMON OPTIONS (stable)
 const baseOptions = {
   noCheckCertificates: true,
   noWarnings: true,
   preferFreeFormats: true,
-
   addHeader: [
     "user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     "accept-language:en-US,en;q=0.9",
     "referer:https://www.youtube.com/"
   ],
-
   extractorArgs: "youtube:player_client=android,web,ios",
-
   retries: 5,
   sleepInterval: 3,
-  concurrentFragments: 1,
 };
 
 // ================= INFO =================
@@ -47,14 +45,12 @@ app.get("/info", async (req, res) => {
 
     let info;
 
-    // 🔥 Try 1
     try {
       info = await ytDlp(url, {
         ...baseOptions,
         dumpSingleJson: true,
       });
     } catch {
-      // 🔥 Try 2 (fallback)
       info = await ytDlp(url, {
         ...baseOptions,
         dumpSingleJson: true,
@@ -71,7 +67,7 @@ app.get("/info", async (req, res) => {
     console.log("INFO ERROR:", err.stderr || err.message);
 
     res.json({
-      error: "Video blocked or unsupported (try another link)"
+      error: "Video not supported or blocked. Try another link."
     });
   }
 });
@@ -81,6 +77,7 @@ app.get("/download", async (req, res) => {
   try {
     let url = cleanUrl(req.query.url);
     const format = req.query.format;
+    const quality = req.query.quality;
 
     const info = await ytDlp(url, {
       ...baseOptions,
@@ -93,44 +90,45 @@ app.get("/download", async (req, res) => {
 
     const filename = `${title}_${Date.now()}`;
 
-    // 🔥 MP3
-    if (format === "mp3") {
-      res.header(
-        "Content-Disposition",
-        `attachment; filename="${filename}.mp3"`
-      );
+    // 🔹 QUALITY (stable progressive formats)
+    let ytFormat = "best";
 
-      const process = ytDlp.exec(url, {
+    if (quality === "720") {
+      ytFormat = "best[height<=720]";
+    } else if (quality === "480") {
+      ytFormat = "best[height<=480]";
+    } else if (quality === "360") {
+      ytFormat = "best[height<=360]";
+    }
+
+    // 🔥 MP3 DOWNLOAD
+    if (format === "mp3") {
+      const filePath = path.join(__dirname, `${filename}.mp3`);
+
+      await ytDlp(url, {
         ...baseOptions,
         extractAudio: true,
         audioFormat: "mp3",
-        output: "-"
+        output: filePath
       });
 
-      process.stdout.pipe(res);
-
-      process.on("error", () => {
-        res.status(500).send("Audio download blocked");
+      res.download(filePath, () => {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       });
 
     } 
-    // 🔥 MP4
+    // 🔥 MP4 DOWNLOAD (with quality)
     else {
-      res.header(
-        "Content-Disposition",
-        `attachment; filename="${filename}.mp4"`
-      );
+      const filePath = path.join(__dirname, `${filename}.mp4`);
 
-      const process = ytDlp.exec(url, {
+      await ytDlp(url, {
         ...baseOptions,
-        format: "best", // simple (stable)
-        output: "-"
+        format: ytFormat,
+        output: filePath
       });
 
-      process.stdout.pipe(res);
-
-      process.on("error", () => {
-        res.status(500).send("Video download blocked");
+      res.download(filePath, () => {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       });
     }
 
