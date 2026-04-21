@@ -6,74 +6,102 @@ const app = express();
 app.use(express.static(__dirname));
 app.use(express.json());
 
-// URL clean function
+// 🔹 URL clean + normalize
 function cleanUrl(url) {
   if (!url) return "";
-  return url.split("&")[0]; // remove extra params
+
+  url = url.split("?")[0];
+
+  // youtu.be → youtube.com
+  if (url.includes("youtu.be/")) {
+    const id = url.split("youtu.be/")[1];
+    url = `https://www.youtube.com/watch?v=${id}`;
+  }
+
+  return url;
 }
 
-// COMMON yt-dlp options (IMPORTANT)
-const ytdlpOptions = {
+// 🔹 COMMON OPTIONS (IMPORTANT)
+const baseOptions = {
   noCheckCertificates: true,
   noWarnings: true,
   preferFreeFormats: true,
+
   addHeader: [
     "user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "accept-language:en-US,en;q=0.9"
+    "accept-language:en-US,en;q=0.9",
+    "referer:https://www.youtube.com/"
   ],
-  extractorArgs: "youtube:player_client=android"
+
+  extractorArgs: "youtube:player_client=android,web,ios",
+
+  retries: 5,
+  sleepInterval: 3,
+  concurrentFragments: 1,
 };
 
-// INFO API
+// ================= INFO =================
 app.get("/info", async (req, res) => {
   try {
     let url = cleanUrl(req.query.url);
 
-    const info = await ytDlp(url, {
-      ...ytdlpOptions,
-      dumpSingleJson: true
-    });
+    let info;
+
+    // 🔥 Try 1
+    try {
+      info = await ytDlp(url, {
+        ...baseOptions,
+        dumpSingleJson: true,
+      });
+    } catch {
+      // 🔥 Try 2 (fallback)
+      info = await ytDlp(url, {
+        ...baseOptions,
+        dumpSingleJson: true,
+        extractorArgs: "youtube:player_client=web"
+      });
+    }
 
     res.json({
       title: info.title,
-      thumbnail: info.thumbnail
+      thumbnail: info.thumbnail,
     });
 
   } catch (err) {
     console.log("INFO ERROR:", err.stderr || err.message);
 
     res.json({
-      error: "Video fetch failed. Try another link."
+      error: "Video blocked or unsupported (try another link)"
     });
   }
 });
 
-// DOWNLOAD API
+// ================= DOWNLOAD =================
 app.get("/download", async (req, res) => {
   try {
     let url = cleanUrl(req.query.url);
     const format = req.query.format;
-    const quality = req.query.quality;
 
     const info = await ytDlp(url, {
-      ...ytdlpOptions,
-      dumpSingleJson: true
+      ...baseOptions,
+      dumpSingleJson: true,
     });
 
-    let title = info.title.replace(/[^\w\s]/gi, "").replace(/\s+/g, "_");
-    const uniqueName = `${title}_${Date.now()}`;
+    let title = info.title
+      .replace(/[^\w\s]/gi, "")
+      .replace(/\s+/g, "_");
 
-    let ytFormat = "best";
+    const filename = `${title}_${Date.now()}`;
 
-    if (quality === "720") ytFormat = "bestvideo[height<=720]+bestaudio";
-    else if (quality === "480") ytFormat = "bestvideo[height<=480]+bestaudio";
-    else if (quality === "360") ytFormat = "bestvideo[height<=360]+bestaudio";
-
+    // 🔥 MP3
     if (format === "mp3") {
-      res.header("Content-Disposition", `attachment; filename="${uniqueName}.mp3"`);
+      res.header(
+        "Content-Disposition",
+        `attachment; filename="${filename}.mp3"`
+      );
 
       const process = ytDlp.exec(url, {
-        ...ytdlpOptions,
+        ...baseOptions,
         extractAudio: true,
         audioFormat: "mp3",
         output: "-"
@@ -81,25 +109,44 @@ app.get("/download", async (req, res) => {
 
       process.stdout.pipe(res);
 
-    } else {
-      res.header("Content-Disposition", `attachment; filename="${uniqueName}.mp4"`);
+      process.on("error", () => {
+        res.status(500).send("Audio download blocked");
+      });
+
+    } 
+    // 🔥 MP4
+    else {
+      res.header(
+        "Content-Disposition",
+        `attachment; filename="${filename}.mp4"`
+      );
 
       const process = ytDlp.exec(url, {
-        ...ytdlpOptions,
-        format: ytFormat,
+        ...baseOptions,
+        format: "best", // simple (stable)
         output: "-"
       });
 
       process.stdout.pipe(res);
+
+      process.on("error", () => {
+        res.status(500).send("Video download blocked");
+      });
     }
 
   } catch (err) {
     console.log("DOWNLOAD ERROR:", err.stderr || err.message);
 
-    res.status(500).send("Download failed. Try another video.");
+    res.status(500).send("Download failed (try another video)");
   }
 });
 
+// ================= ROOT =================
+app.get("/", (req, res) => {
+  res.send("Server running 🚀");
+});
+
+// ================= START =================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
