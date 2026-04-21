@@ -8,13 +8,11 @@ const app = express();
 app.use(express.static(__dirname));
 app.use(express.json());
 
-// 🔹 URL clean + normalize
+// 🔹 Clean URL
 function cleanUrl(url) {
   if (!url) return "";
-
   url = url.split("?")[0];
 
-  // youtu.be → youtube.com
   if (url.includes("youtu.be/")) {
     const id = url.split("youtu.be/")[1];
     url = `https://www.youtube.com/watch?v=${id}`;
@@ -23,7 +21,7 @@ function cleanUrl(url) {
   return url;
 }
 
-// 🔹 COMMON OPTIONS (stable)
+// 🔹 COMMON OPTIONS
 const baseOptions = {
   noCheckCertificates: true,
   noWarnings: true,
@@ -36,38 +34,48 @@ const baseOptions = {
   extractorArgs: "youtube:player_client=android,web,ios",
   retries: 5,
   sleepInterval: 3,
+  geoBypass: true
 };
 
 // ================= INFO =================
 app.get("/info", async (req, res) => {
   try {
     let url = cleanUrl(req.query.url);
-
     let info;
 
     try {
       info = await ytDlp(url, {
         ...baseOptions,
-        dumpSingleJson: true,
+        dumpSingleJson: true
       });
     } catch {
-      info = await ytDlp(url, {
-        ...baseOptions,
-        dumpSingleJson: true,
-        extractorArgs: "youtube:player_client=web"
-      });
+      try {
+        info = await ytDlp(url, {
+          ...baseOptions,
+          dumpSingleJson: true,
+          extractorArgs: "youtube:player_client=web"
+        });
+      } catch {
+        info = await ytDlp(url, {
+          ...baseOptions,
+          dumpSingleJson: true,
+          extractorArgs: "youtube:player_client=android"
+        });
+      }
     }
 
     res.json({
       title: info.title,
       thumbnail: info.thumbnail,
+      duration: info.duration,
+      resolution: info.resolution
     });
 
   } catch (err) {
     console.log("INFO ERROR:", err.stderr || err.message);
 
     res.json({
-      error: "Video not supported or blocked. Try another link."
+      error: "Video not supported or restricted. Try another platform."
     });
   }
 });
@@ -81,7 +89,7 @@ app.get("/download", async (req, res) => {
 
     const info = await ytDlp(url, {
       ...baseOptions,
-      dumpSingleJson: true,
+      dumpSingleJson: true
     });
 
     let title = info.title
@@ -90,18 +98,14 @@ app.get("/download", async (req, res) => {
 
     const filename = `${title}_${Date.now()}`;
 
-    // 🔹 QUALITY (stable progressive formats)
+    // 🔹 Quality mapping (stable)
     let ytFormat = "best";
 
-    if (quality === "720") {
-      ytFormat = "best[height<=720]";
-    } else if (quality === "480") {
-      ytFormat = "best[height<=480]";
-    } else if (quality === "360") {
-      ytFormat = "best[height<=360]";
-    }
+    if (quality === "720") ytFormat = "best[height<=720]";
+    else if (quality === "480") ytFormat = "best[height<=480]";
+    else if (quality === "360") ytFormat = "best[height<=360]";
 
-    // 🔥 MP3 DOWNLOAD
+    // 🔥 MP3
     if (format === "mp3") {
       const filePath = path.join(__dirname, `${filename}.mp3`);
 
@@ -117,7 +121,7 @@ app.get("/download", async (req, res) => {
       });
 
     } 
-    // 🔥 MP4 DOWNLOAD (with quality)
+    // 🔥 MP4
     else {
       const filePath = path.join(__dirname, `${filename}.mp4`);
 
@@ -135,7 +139,7 @@ app.get("/download", async (req, res) => {
   } catch (err) {
     console.log("DOWNLOAD ERROR:", err.stderr || err.message);
 
-    res.status(500).send("Download failed (try another video)");
+    res.status(500).send("Download failed. Platform may restrict this video.");
   }
 });
 
