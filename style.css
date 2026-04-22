@@ -12,7 +12,6 @@ body {
   color: white;
   display: flex;
   flex-direction: column;
-  align-items: center;
   transition: 0.3s;
 }
 
@@ -25,12 +24,32 @@ body {
   align-items: center;
 }
 
+/* LOGO */
 .logo {
   font-size: 22px;
   font-weight: bold;
   background: linear-gradient(45deg, #ff4b2b, #ff416c);
   -webkit-background-clip: text;
   color: transparent;
+}
+
+/* NAVBAR */
+.nav {
+  display: flex;
+  gap: 25px;
+  margin-left: auto;
+  margin-right: 100px;
+}
+
+.nav a {
+  text-decoration: none;
+  color: #ccc;
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.nav a:hover {
+  color: #ff4d6d;
 }
 
 /* 🌙 THEME BUTTON */
@@ -56,6 +75,7 @@ body {
   justify-content: center;
   align-items: center;
   width: 100%;
+  min-height: 80vh; /* 🔥 improved spacing */
 }
 
 /* 🧊 CARD */
@@ -66,13 +86,15 @@ body {
   border-radius: 20px;
   width: 90%;
   max-width: 420px;
-  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  box-shadow: 0 0 50px rgba(0,0,0,0.7); /* 🔥 upgraded */
   text-align: center;
   transition: 0.3s;
 }
 
 .card h2 {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  font-size: 22px;
+  line-height: 1.3;
 }
 
 /* INPUT */
@@ -117,7 +139,6 @@ select {
   transition: all 0.3s ease;
 }
 
-/* Glow effect */
 .download-btn::before {
   content: "";
   position: absolute;
@@ -159,11 +180,47 @@ select {
   100% { transform: rotate(360deg); }
 }
 
-/* RESULT */
+/* RESULT IMAGE */
 img {
   width: 100%;
   border-radius: 10px;
   margin-top: 10px;
+}
+
+/* 🔥 DIVIDER */
+.divider {
+  width: 60%;
+  margin: 50px auto;
+  border: none;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ABOUT */
+.about {
+  text-align: center;
+  padding: 120px 20px 80px;
+}
+
+.about h2 {
+  margin-bottom: 15px;
+  font-size: 32px;
+}
+
+.about p {
+  max-width: 650px;
+  margin: auto;
+  line-height: 1.7;
+  font-size: 16px;
+  color: #bbb;
+}
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  padding: 20px;
+  color: #aaa;
+  border-top: 1px solid #333;
 }
 
 /* ☀️ LIGHT MODE */
@@ -187,16 +244,26 @@ body.light .theme-btn {
   color: black;
 }
 
-/* 📱 MOBILE */
+body.light .nav a {
+  color: #333;
+}
+
+/* MOBILE */
 @media (max-width: 500px) {
+  .header {
+    padding: 15px 20px;
+  }
+
   .options {
     flex-direction: column;
   }
+
+  .nav {
+    gap: 10px;
+  }
 }
-body.light .download-btn {
-  box-shadow: 0 5px 20px rgba(255,65,108,0.4);
-}
-/* Download button spacing */
+
+/* RESULT BUTTON */
 #result .download-btn {
   margin-top: 15px;
   box-shadow: 0 5px 20px rgba(255,65,108,0.4);
