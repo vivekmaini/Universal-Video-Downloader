@@ -1,20 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>UniDown - Downloader</title>
+  <meta charset="UTF-8">
+  <title>UniSave - Video Downloader</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- HEADER -->
 <header class="header">
-  <div class="logo">⚡ UNiSave</div>
+  <div class="logo">⚡ UniSave</div>
+  
+  <nav class="nav">
+    <a href="#">Home</a>
+    <a href="#about">About</a>
+  </nav>
+
   <button onclick="toggleTheme()" class="theme-btn">🌙</button>
 </header>
 
 <!-- MAIN -->
 <div class="main">
-
   <div class="card">
     <h2>Download Any Reel Instantly</h2>
 
@@ -40,10 +46,25 @@
 
     <div id="loader" class="loader"></div>
     <div id="result"></div>
-
   </div>
-
 </div>
+
+<!-- DIVIDER (🔥 important for spacing) -->
+<hr class="divider">
+
+<!-- ABOUT SECTION -->
+<section id="about" class="about">
+  <h2>About UniSave</h2>
+  <p>
+    UniSave is a fast and user-friendly web application that allows users to download video and audio from multiple online platforms.
+    It is designed to be simple, efficient, and does not require any login, making it accessible for everyone.
+  </p>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>© 2026 UniSave | Built with ❤️ using Node.js </p>
+</footer>
 
 <script src="script.js"></script>
 </body>
